@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RideShare</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #f5f6fa;
+}
+
+/* Navbar */
+.navbar {
+    background: #1e272e;
+    color: white;
+    padding: 15px 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar h2 {
+    margin: 0;
+    font-weight: 500;
+}
+
+.menu a {
+    color: #dcdde1;
+    margin-left: 20px;
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.menu a:hover {
+    color: white;
+}
+
+/* Layout */
+.container {
+    display: flex;
+    padding: 30px;
+    gap: 20px;
+}
+
+/* Left Panel */
+.card {
+    width: 350px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Inputs */
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 8px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+/* Buttons */
+button {
+    width: 100%;
+    padding: 10px;
+    background: #2f3640;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    margin-top: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button:hover {
+    background: #353b48;
+}
+
+/* Vehicle buttons */
+.vehicles {
+    display: flex;
+    justify-content: space-between;
+}
+
+.vehicles button {
+    width: 32%;
+    background: #dcdde1;
+    color: black;
+}
+
+.vehicles button:hover {
+    background: #b2bec3;
+}
+
+/* Drivers */
+.driver {
+    background: #f1f2f6;
+    padding: 10px;
+    margin-top: 8px;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+/* Map */
+#map {
+    flex: 1;
+    height: 500px;
+    border-radius: 12px;
+}
+
+/* Mode buttons */
+.mode-btn {
+    background: #40739e;
+}
+
+.mode-btn.active {
+    background: #44bd32;
+}
+</style>
+</head>
+
+<body>
+
+<!-- Navbar -->
+<div class="navbar">
+    <h2>RideShare</h2>
+    <div class="menu">
+        <a href="profile.html">Profile</a>
+        <a href="history.html">Ride History</a>
+        <a href="bank.html">Bank</a>
+    </div>
+</div>
+
+<div class="container">
+
+    <!-- Left Panel -->
+    <div class="card">
+
+        <h3>Book a Ride</h3>
+
+        <input type="text" id="pickup" placeholder="Pickup Location">
+        <button onclick="getLocation()">Use Current Location</button>
+        <button id="pickupBtn" class="mode-btn" onclick="setMode('pickup')">Select on Map</button>
+
+        <input type="text" id="drop" placeholder="Drop Location">
+        <button id="dropBtn" class="mode-btn" onclick="setMode('drop')">Select on Map</button>
+
+        <h4>Select Vehicle</h4>
+        <div class="vehicles">
+            <button onclick="selectVehicle('Car')">Car</button>
+            <button onclick="selectVehicle('Bike')">Bike</button>
+            <button onclick="selectVehicle('Scooty')">Scooty</button>
+        </div>
+
+        <button onclick="showDrivers()">Find Drivers</button>
+
+        <div id="drivers"></div>
+
+    </div>
+
+    <!-- Map -->
+    <div id="map"></div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+let mode = "";
+let selectedVehicle = "";
+let pickupMarker, dropMarker;
+
+let map = L.map('map').setView([17.3850, 78.4867], 10);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap'
+}).addTo(map);
+
+function setMode(type) {
+    mode = type;
+
+    document.getElementById("pickupBtn").classList.remove("active");
+    document.getElementById("dropBtn").classList.remove("active");
+
+    if(type === "pickup") {
+        document.getElementById("pickupBtn").classList.add("active");
+    } else {
+        document.getElementById("dropBtn").classList.add("active");
+    }
+}
+
+map.on('click', function(e) {
+    let lat = e.latlng.lat.toFixed(4);
+    let lon = e.latlng.lng.toFixed(4);
+
+    if(mode === "pickup") {
+        if(pickupMarker) map.removeLayer(pickupMarker);
+        pickupMarker = L.marker([lat, lon]).addTo(map);
+        document.getElementById("pickup").value = `${lat}, ${lon}`;
+    }
+
+    if(mode === "drop") {
+        if(dropMarker) map.removeLayer(dropMarker);
+        dropMarker = L.marker([lat, lon]).addTo(map);
+        document.getElementById("drop").value = `${lat}, ${lon}`;
+    }
+});
+
+function selectVehicle(type) {
+    selectedVehicle = type;
+}
+
+function showDrivers() {
+    let drivers = [
+        {name:"raju", rating:4.8},
+        {name:"Priya", rating:4.6},
+        {name:"Arjun", rating:4.9}
+    ];
+
+    let output = "<h4>Available Drivers</h4>";
+
+    drivers.forEach(d => {
+        output += `<div class="driver">
+        ${d.name} • ⭐ ${d.rating} • ${selectedVehicle}
+        </div>`;
+    });
+
+    document.getElementById("drivers").innerHTML = output;
+}
+
+function getLocation() {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+        let lat = pos.coords.latitude;
+        let lon = pos.coords.longitude;
+
+        document.getElementById("pickup").value = `${lat}, ${lon}`;
+        map.setView([lat, lon], 13);
+
+        if(pickupMarker) map.removeLayer(pickupMarker);
+        pickupMarker = L.marker([lat, lon]).addTo(map);
+    });
+}
+</script>
+
+</body>
+</html>
